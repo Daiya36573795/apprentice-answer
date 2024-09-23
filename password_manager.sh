@@ -10,12 +10,27 @@ PASSPHRASE="encryption-password"
 # パスワードマネージャーのメッセージを表示
 echo "パスワードマネージャーへようこそ！"
 
+# パスワードを自動生成する関数(追加実装)
+generate_password() {
+    length=16
+    password=$(openssl rand -base64 48 | cut -c1-$length)
+    echo "$password"
+}
+
 # パスワードを保存する関数
 add_password() {
     read -p "サービス名を入力してください: " service_name
     read -p "ユーザー名を入力してください: " username
-    read -sp "パスワードを入力してください: " password
-    echo ""  # パスワード入力後に改行を挿入
+
+    # パスワードを自動生成するかどうかを確認
+    read -p "パスワードを自動生成しますか？(y/n): " generate
+    if [ "$generate" == "y" ]; then
+        password=$(generate_password)
+        echo "生成されたパスワード: $password"
+    else
+        read -sp "パスワードを入力してください: " password
+        echo ""  # パスワード入力後に改行を挿入
+    fi
 
     # 暗号化ファイルが存在する場合は復号して内容を取得
     if [ -f "$ENCRYPTED_FILE" ]; then
@@ -39,7 +54,7 @@ get_password() {
     read -p "サービス名を入力してください: " service_name
 
     # ファイルが存在する場合のみ復号化
-    if [ -f "$ENCRYPTED_FILE" ]; then
+    if [ -f "$ENCRYPTED_FILE" ];then
         gpg --decrypt --batch --yes --passphrase "$PASSPHRASE" --output "$FILE" "$ENCRYPTED_FILE"
     else
         echo "暗号化ファイルが存在しません。"
@@ -48,7 +63,7 @@ get_password() {
 
     # サービス名で検索
     result=$(grep "^$service_name:" "$FILE")
-    if [ -z "$result" ]; then
+    if [ -z "$result" ];then
         echo "そのサービスは登録されていません。"
     else
         # サービス情報を表示
@@ -64,8 +79,8 @@ get_password() {
 
 # メインループ
 while true; do
-    echo "パスワードマネージャーへようこそ！"
-    read -p "次の選択肢から入力してください(Add Password/Get Password/Exit)：" action
+    echo "次の選択肢から入力してください(Add Password/Get Password/Exit)："
+    read action
 
     case "$action" in
         "Add Password")
